@@ -53,8 +53,26 @@ namespace pathPlannings
 
     void simplePlannings::pathNodesGenerator()
     {
+        // create list of material locations
+        std::vector<Eigen::Vector2d> materialLocations;
+        for(auto i=0;i<occupancyMap_.rows();i++)
+        {
+            for(auto j=0;j<occupancyMap_.cols();j++)
+            {
+                if(occupancyMap_(i,j)>=1)
+                {
+                    materialLocations.push_back(Eigen::Vector2d(i,j));
+                }
+            }
+        }
         
         
+        
+    }
+
+    pathNode* simplePlannings::pathNodeGenerator(pathNode* parent, Eigen::Vector2d& target, Eigen::Vector2d& pose, Eigen::MatrixXd& occupancyMap, double& cost)
+    {
+        return new pathNode(parent, target, pose, occupancyMap, cost);
     }
 
 
