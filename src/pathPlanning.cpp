@@ -3,6 +3,23 @@
 
 namespace pathPlannings
 {
+    planningNode::planningNode(Eigen::MatrixXd occupancyMap, Eigen::Vector2d pose, vector<pathNode*> path):
+    pose(pose)
+    {
+        setVariables(occupancyMap, path);
+    }
+    
+    void planningNode::setVariables(Eigen::MatrixXd occupancyMap, vector<pathNode*> path)
+    {   
+        this->occupancyMap_.resize(occupancyMap.rows(), occupancyMap.cols());
+        this->occupancyMap_ = occupancyMap;
+
+        this->path.assign(path.begin(), path.end());
+    }
+
+
+
+
     pathNode::pathNode(pathNode* parent, Eigen::Vector2d& target, Eigen::Vector2d& pose, Eigen::MatrixXd& occupancyMap, double& cost):
     parent_(parent), target_(target), pose_(pose), cost(cost)
     {
@@ -50,13 +67,12 @@ namespace pathPlannings
 
     int simplePlannings::calculateCost(Eigen::MatrixXd& occupancyMap)
     {
-        ROS_INFO_STREAM("occupancyMap_: " << occupancyMap_);
         int cost = 0;
-        for(auto i=0; i < occupancyMap_.rows(); i++)
+        for(auto i=0; i < occupancyMap.rows(); i++)
         {
-            for(auto j=0; j < occupancyMap_.cols(); j++)
+            for(auto j=0; j < occupancyMap.cols(); j++)
             {
-                if(occupancyMap_(i,j) == 1 && occupancyMap_(i,j) != goalMap_(i,j))
+                if(occupancyMap(i,j) == 1 && occupancyMap(i,j) != goalMap_(i,j))
                 {
                     cost += 1;
                 }
@@ -65,8 +81,34 @@ namespace pathPlannings
         return cost;
     }
 
+    double simplePlannings::calculateDistance(Eigen::Vector2d pose, Eigen::Vector2d target)
+    {
+        return abs(pose(1) - target(1)) + abs(pose(0) - target(0));
+    }
+
     void simplePlannings::solvePlanning()
-    {}
+    {
+        priority_queue<planningNode*, vector<planningNode*>, compPlanning> priorityPaths;
+        Eigen::Vector2d pose(initialPosition_);
+        Eigen::MatrixXd occupancyMap(occupancyMap_);
+        
+        planningNode* root = new planningNode(occupancyMap, pose, parents_);
+        root->cost = (double)0.0;
+
+        priorityPaths.push(root);
+        while(!priorityPaths.empty())
+        {
+            planningNode* currentNode = priorityPaths.top();
+            priorityPaths.pop();
+            for(auto i = currentNode->path.begin(); i!=currentNode->path.end(); ++i)
+            {
+                priorityPaths* child = new planningNode(currentNode, *i, occupancyMap, currentNode->cost); 
+            }
+            
+
+        }
+
+    }
 
 
     void simplePlannings::pathNodesGenerator(Eigen::Vector2d& target)
@@ -122,10 +164,10 @@ namespace pathPlannings
                         occupancyMap(materialPose(0),materialPose(1)) = 0;
                         if((target-materialPoseNew).norm() == 0)
                         {
-                            pathNode* node =  new pathNode(parent, target, materialPoseNew, occupancyMap, motionCost);
+                            pathNode* node =  new pathNode(parent, target, checkPosition, occupancyMap, motionCost);
                             return node;
                         }
-                        pathNode* node = new pathNode(parent, target, materialPoseNew, occupancyMap, motionCost);
+                        pathNode* node = new pathNode(parent, target, checkPosition, occupancyMap, motionCost);
                         node->childrens_.push_back(pathNodeGenerator(node, target, materialPoseNew, occupancyMap));
                         parent->childrens_.push_back(node);
                     }
