@@ -63,15 +63,19 @@ namespace pathPlannings
     {
         public:
             simplePlannings(ros::NodeHandle& nh ,Eigen::MatrixXd& occupancyMap, Eigen::MatrixXd& goalMap, Eigen::Vector2d& initialPosition, 
-            Eigen::Vector2d& constructionDirection, vector<Eigen::Vector2d>& motion);
+            Eigen::Vector2d& constructionDirection);
             ~simplePlannings();
             bool limitTest(Eigen::Vector2d& newPosition);
-            void setVariables(Eigen::MatrixXd&, vector<Eigen::Vector2d>&, Eigen::MatrixXd&);
+            void setVariables(Eigen::MatrixXd&, Eigen::MatrixXd&);
             void planning();
             void pathNodesGenerator(Eigen::Vector2d& target);
             pathNode* pathNodeGenerator(pathNode* parent, Eigen::Vector2d& target, Eigen::Vector2d& materialPose , Eigen::MatrixXd& occupancyMap);
             int calculateCost(Eigen::MatrixXd& occupancyMap);
             void solvePlanning();
+            double stepPlanning(Eigen::MatrixXd& occupancyMap, Eigen::Vector2d& motion, Eigen::Vector2d& materialPose, Eigen::Vector2d& target);
+
+
+
         private:
             ros::NodeHandle nh_;
             Eigen::MatrixXd occupancyMap_;
