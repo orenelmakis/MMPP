@@ -17,10 +17,13 @@ namespace pathPlannings
     class planningNode
     {   
         public:
-        planningNode(int& cost);
-        int cost;
+        planningNode(Eigen::MatrixXd occupancyMap, Eigen::Vector2d pose, vector<pathNode*> path);
+        void setVariables(Eigen::MatrixXd occupancyMap, vector<pathNode*> path);
+        double cost;
+        double distance;
         Eigen::MatrixXd occupancyMap_;
         Eigen::Vector2d pose;
+        vector<pathNode*> path;
 
     };
 
@@ -28,7 +31,7 @@ namespace pathPlannings
     {
         bool operator()(const planningNode* a, const planningNode* b) const
         {
-            return a->cost> b->cost;
+            return a->distance> b->distance;
         }
     };
 
@@ -70,6 +73,8 @@ namespace pathPlannings
             void planning();
             void pathNodesGenerator(Eigen::Vector2d& target);
             pathNode* pathNodeGenerator(pathNode* parent, Eigen::Vector2d& target, Eigen::Vector2d& materialPose , Eigen::MatrixXd& occupancyMap);
+            
+            double calculateDistance(Eigen::Vector2d pose, Eigen::Vector2d target);
             int calculateCost(Eigen::MatrixXd& occupancyMap);
             void solvePlanning();
             double stepPlanning(Eigen::MatrixXd& occupancyMap, Eigen::Vector2d& motion, Eigen::Vector2d& materialPose, Eigen::Vector2d& target);
