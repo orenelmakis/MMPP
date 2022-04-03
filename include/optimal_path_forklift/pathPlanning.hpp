@@ -2,7 +2,9 @@
 #include <vector>
 #include <ros/ros.h>
 
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
+#include <Eigen/Core>
+
 #include <bits/stdc++.h>
 
 
@@ -14,42 +16,24 @@ namespace pathPlannings
 {
 
 
-    class planningNode
-    {   
-        public:
-        planningNode(Eigen::MatrixXd occupancyMap, Eigen::Vector2d pose, vector<pathNode*> path);
-        void setVariables(Eigen::MatrixXd occupancyMap, vector<pathNode*> path);
-        double cost;
-        double distance;
-        Eigen::MatrixXd occupancyMap_;
-        Eigen::Vector2d pose;
-        vector<pathNode*> path;
 
-    };
-
-    struct compPlanning
-    {
-        bool operator()(const planningNode* a, const planningNode* b) const
-        {
-            return a->distance> b->distance;
-        }
-    };
 
     class pathNode
     {
         public:
-            pathNode(pathNode* parent, Eigen::Vector2d& target, Eigen::Vector2d& pose, Eigen::MatrixXd& occupancyMap, double& cost);
+            pathNode(pathNode* parent, Eigen::Vector2i& target, Eigen::Vector2i& pose, Eigen::MatrixXi& occupancyMap, int& cost);
             
-            void setVariables(Eigen::MatrixXd&);
-            double cost;
-            Eigen::Vector2d pose_;
+            void setVariables(Eigen::MatrixXi&);
+            int cost;
+            Eigen::Vector2i pose_;
             vector<pathNode*> childrens_;
+            Eigen::Vector2i motion;
         private:
             pathNode* parent_;
             
-            Eigen::Vector2d target_;
+            Eigen::Vector2i target_;
             
-            Eigen::MatrixXd occupancyMap_;
+            Eigen::MatrixXi occupancyMap_;
             
 
     };
@@ -58,39 +42,67 @@ namespace pathPlannings
     {
         bool operator()(const pathNode* a, const pathNode* b) const
         {
-            return a->cost> b->cost;
+            return a->cost > b->cost;
+        }
+    };
+
+
+    class planningNode
+    {   
+        public:
+        planningNode(Eigen::Vector2i& pose, planningNode* parent);
+        void setVariables(Eigen::MatrixXi& occupancyMap, vector<pathNode*>& path);
+        int cost;
+        double distance;
+        int price;
+        Eigen::MatrixXi occupancyMap_;
+        Eigen::Vector2i pose;
+        Eigen::Vector2i poseTarget;
+        vector<pathNode*> path;
+        planningNode* parent;
+
+    };
+
+    struct compPlanning
+    {
+        bool operator()(const planningNode* a, const planningNode* b) const
+        {
+            return a->distance+a->price > b->distance+b->price;
         }
     };
 
     class simplePlannings
     {
         public:
-            simplePlannings(ros::NodeHandle& nh ,Eigen::MatrixXd& occupancyMap, Eigen::MatrixXd& goalMap, Eigen::Vector2d& initialPosition, 
-            Eigen::Vector2d& constructionDirection);
+            simplePlannings(ros::NodeHandle& nh ,Eigen::MatrixXi& occupancyMap, Eigen::MatrixXi& goalMap, Eigen::Vector2i& initialPosition, 
+            Eigen::Vector2i& constructionDirection);
             ~simplePlannings();
-            bool limitTest(Eigen::Vector2d& newPosition);
-            void setVariables(Eigen::MatrixXd&, Eigen::MatrixXd&);
+            bool limitTest(Eigen::Vector2i& newPosition, Eigen::MatrixXi& occupancyMap);
+            void setVariables(Eigen::MatrixXi&, Eigen::MatrixXi&);
             void planning();
-            void pathNodesGenerator(Eigen::Vector2d& target);
-            pathNode* pathNodeGenerator(pathNode* parent, Eigen::Vector2d& target, Eigen::Vector2d& materialPose , Eigen::MatrixXd& occupancyMap);
+            void pathNodesGenerator(Eigen::Vector2i& target);
+            pathNode* pathNodeGenerator(pathNode* parent, Eigen::Vector2i& target, Eigen::Vector2i& materialPose , Eigen::MatrixXi& occupancyMap);
             
-            double calculateDistance(Eigen::Vector2d pose, Eigen::Vector2d target);
-            int calculateCost(Eigen::MatrixXd& occupancyMap);
+            int calculateDistance(Eigen::Vector2i& pose, Eigen::Vector2i& target);
+            int calculateCost(Eigen::MatrixXi& occupancyMap);
+            int calculateCostDistance(Eigen::MatrixXi& occupancyMap);
             void solvePlanning();
-            double stepPlanning(Eigen::MatrixXd& occupancyMap, Eigen::Vector2d& motion, Eigen::Vector2d& materialPose, Eigen::Vector2d& target);
+            int stepPlanning(Eigen::MatrixXi& occupancyMap, Eigen::Vector2i& motion, Eigen::Vector2i& materialPose, Eigen::Vector2i& target);
+            planningNode* newPlanningNode(Eigen::Vector2i& pose, planningNode* parent, double& cost, Eigen::MatrixXi& occupancyMap);
 
 
-
+        vector<Eigen::Vector2i> agentPath;
         private:
             ros::NodeHandle nh_;
-            Eigen::MatrixXd occupancyMap_;
-            Eigen::MatrixXd goalMap_;
-            Eigen::Vector2d  target_;
-            Eigen::Vector2d initialPosition_;
-            vector<Eigen::Vector2d> path_;
-            Eigen::Vector2d constructionDirection_;
-            vector<Eigen::Vector2d> motion_;
+            Eigen::MatrixXi occupancyMap_;
+            Eigen::MatrixXi goalMap_;
+            Eigen::Vector2i  target_;
+            Eigen::Vector2i initialPosition_;
+            vector<Eigen::Vector2i> path_;
+            Eigen::Vector2i constructionDirection_;
+            vector<Eigen::Vector2i> motion_;
             vector<pathNode*> parents_;
+            
 
 
 

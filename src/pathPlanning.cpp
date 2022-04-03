@@ -3,13 +3,13 @@
 
 namespace pathPlannings
 {
-    planningNode::planningNode(Eigen::MatrixXd occupancyMap, Eigen::Vector2d pose, vector<pathNode*> path):
-    pose(pose)
+    planningNode::planningNode(Eigen::Vector2i& pose, planningNode* parent):
+    pose(pose), parent(parent)
     {
-        setVariables(occupancyMap, path);
+
     }
     
-    void planningNode::setVariables(Eigen::MatrixXd occupancyMap, vector<pathNode*> path)
+    void planningNode::setVariables(Eigen::MatrixXi& occupancyMap, vector<pathNode*>& path)
     {   
         this->occupancyMap_.resize(occupancyMap.rows(), occupancyMap.cols());
         this->occupancyMap_ = occupancyMap;
@@ -20,21 +20,21 @@ namespace pathPlannings
 
 
 
-    pathNode::pathNode(pathNode* parent, Eigen::Vector2d& target, Eigen::Vector2d& pose, Eigen::MatrixXd& occupancyMap, double& cost):
-    parent_(parent), target_(target), pose_(pose), cost(cost)
+    pathNode::pathNode(pathNode* parent, Eigen::Vector2i& target, Eigen::Vector2i& pose, Eigen::MatrixXi& occupancyMap, int& cost):
+    parent_(parent), target_(target), pose_(pose), cost(cost), motion(motion)
     {
         setVariables(occupancyMap);
     }
 
-    void pathNode::setVariables(Eigen::MatrixXd& occupancyMap)
+    void pathNode::setVariables(Eigen::MatrixXi& occupancyMap)
     {
         occupancyMap_.resize(occupancyMap.rows(), occupancyMap.cols());
         occupancyMap_ = occupancyMap;
     }
 
 
-    simplePlannings::simplePlannings(ros::NodeHandle& nh, Eigen::MatrixXd& occupancyMap, Eigen::MatrixXd& goalMap, Eigen::Vector2d& initialPosition,
-        Eigen::Vector2d& constructionDirection):
+    simplePlannings::simplePlannings(ros::NodeHandle& nh, Eigen::MatrixXi& occupancyMap, Eigen::MatrixXi& goalMap, Eigen::Vector2i& initialPosition,
+        Eigen::Vector2i& constructionDirection):
         nh_(nh),
         initialPosition_(initialPosition),
         constructionDirection_(constructionDirection)
@@ -47,12 +47,12 @@ namespace pathPlannings
     {
     }
 
-    void simplePlannings::setVariables(Eigen::MatrixXd& occupancyMap, Eigen::MatrixXd& goalMap)
+    void simplePlannings::setVariables(Eigen::MatrixXi& occupancyMap, Eigen::MatrixXi& goalMap)
     {
         occupancyMap_.resize(occupancyMap.rows(), occupancyMap.cols());
         occupancyMap_ = occupancyMap;
 
-        motion_ = {Eigen::Vector2d(1,0), Eigen::Vector2d(0,1), Eigen::Vector2d(-1,0), Eigen::Vector2d(0,-1)};
+        motion_ = {Eigen::Vector2i(1,0), Eigen::Vector2i(0,1), Eigen::Vector2i(-1,0), Eigen::Vector2i(0,-1)};
 
         goalMap_.resize(goalMap.rows(), goalMap.cols());
         goalMap_ = goalMap;
@@ -64,23 +64,39 @@ namespace pathPlannings
         ROS_INFO_STREAM("occupancyMap_: " << occupancyMap_);
     }
 
-    int simplePlannings::calculateCost(Eigen::MatrixXd& occupancyMap)
+    int simplePlannings::calculateCost(Eigen::MatrixXi& occupancyMap)
     {
         int cost = 0;
         for(auto i=0; i < occupancyMap.rows(); i++)
         {
             for(auto j=0; j < occupancyMap.cols(); j++)
             {
-                if(occupancyMap(i,j) == 1 && occupancyMap(i,j) != goalMap_(i,j))
+                if(occupancyMap(i,j) > 0 && (i != target_(0) || j != target_(1)))
                 {
-                    cost += 1;
+                    cost += occupancyMap(i,j);
                 }
             }
         }
         return cost;
     }
 
-    double simplePlannings::calculateDistance(Eigen::Vector2d pose, Eigen::Vector2d target)
+    int simplePlannings::calculateCostDistance(Eigen::MatrixXi& occupancyMap)
+    {
+        int cost = 0;
+        for(auto i=0; i < occupancyMap.rows(); i++)
+        {
+            for(auto j=0; j < occupancyMap.cols(); j++)
+            {
+                if(occupancyMap(i,j) > 0)
+                {
+                    cost += abs(i-target_(0)) + abs(j-target_(1));
+                }
+            }
+        }
+        return cost;
+    }
+
+    int simplePlannings::calculateDistance(Eigen::Vector2i& pose, Eigen::Vector2i& target)
     {
         return abs(pose(1) - target(1)) + abs(pose(0) - target(0));
     }
@@ -88,20 +104,81 @@ namespace pathPlannings
     void simplePlannings::solvePlanning()
     {
         priority_queue<planningNode*, vector<planningNode*>, compPlanning> priorityPaths;
-        Eigen::Vector2d pose(initialPosition_);
-        Eigen::MatrixXd occupancyMap(occupancyMap_);
+        Eigen::Vector2i pose(initialPosition_);
+        Eigen::MatrixXi occupancyMap(occupancyMap_);
         
-        planningNode* root = new planningNode(occupancyMap, pose, parents_);
-        root->cost = (double)0.0;
+        planningNode* root = new planningNode(pose, NULL);
+        root->setVariables(occupancyMap, parents_);
+        root->cost = calculateCost(occupancyMap_);
 
         priorityPaths.push(root);
+        int counter = 0;
         while(!priorityPaths.empty())
         {
-            planningNode* currentNode = priorityPaths.top();
-            priorityPaths.pop();
-            for(auto i = currentNode->path.begin(); i!=currentNode->path.end(); ++i)
+            counter ++;
+            if(counter == 100000)
             {
-                priorityPaths* child = new planningNode(currentNode, *i, occupancyMap, currentNode->cost); 
+                break;
+            }
+            ROS_INFO_STREAM("counter: " << counter);
+            planningNode* currentNode = priorityPaths.top();
+            // ROS_INFO_STREAM(currentNode->occupancyMap_);
+            priorityPaths.pop();
+            if(currentNode->cost == 0)
+            {
+                while(currentNode->parent != NULL)
+                {
+                    ROS_INFO_STREAM(currentNode->occupancyMap_);
+                    agentPath.push_back(currentNode->poseTarget);
+                    agentPath.push_back(currentNode->pose);
+                    currentNode = currentNode->parent;
+                }
+                ROS_INFO_STREAM(currentNode->occupancyMap_);
+                agentPath.push_back(currentNode->pose);
+                return;
+            }
+            ROS_INFO_STREAM(currentNode->path.size());
+            for(auto i = 0; i<currentNode->path.size(); i++)
+            {
+                for(auto j = 0; j < currentNode->path[i]->childrens_.size();j++)
+                {
+                    ROS_INFO_STREAM("i: " << i << " j: " << j);
+                    Eigen::Vector2i pose = currentNode->path[i]->pose_ - currentNode->path[i]->childrens_[j]->motion;
+                    planningNode* node = new planningNode(pose, currentNode);
+                    Eigen::MatrixXi occupancyMapNode(currentNode->occupancyMap_);
+                    vector<pathNode*> pathNode = currentNode->path;
+                    pathNode[i] = currentNode->path[i]->childrens_[j];
+                    Eigen::Vector2i& materialPose = currentNode->path[i]->childrens_[j]->pose_;
+                    Eigen::Vector2i& prevMaterialPose = currentNode->path[i]->pose_;
+                    Eigen::Vector2i& nodeMotion = currentNode->path[i]->childrens_[j]->motion;
+                    // ROS_INFO_STREAM(currentNode->path[i]->childrens_[j]->pose_(0) << " " << currentNode->path[i]->childrens_[j]->pose_(1));
+                    int value = 0;
+                    // ROS_INFO_STREAM("prevMaterialPose: " << prevMaterialPose << " materialPose: " << materialPose);
+                    // ROS_INFO_STREAM("motion: " << nodeMotion);
+                    for(auto k = prevMaterialPose; k!=materialPose; k+=nodeMotion)
+                    {
+                            value += currentNode->occupancyMap_(k(0),k(1));
+                            occupancyMapNode(k(0),k(1)) = 0;
+                            ROS_INFO_STREAM("value:" << value);
+                    }
+                    occupancyMapNode(materialPose(0),materialPose(1)) = value + currentNode->occupancyMap_(materialPose(0),materialPose(1));
+                    ROS_INFO_STREAM("occupancyMapNode(materialPose(0),materialPose(1)): " << occupancyMapNode(materialPose(0),materialPose(1)));
+                    node->setVariables(occupancyMapNode,pathNode);
+                    Eigen::Vector2i prevPose = currentNode->pose;
+                    
+                    // ROS_INFO_STREAM("prevPose: " << prevPose);
+                    // ROS_INFO_STREAM("pose: " << pose);
+                    // ROS_INFO_STREAM("node cost: " << currentNode->path[i]->childrens_[j]->cost);
+                    node->distance = calculateDistance(pose, prevPose) + currentNode->path[i]->childrens_[j]->cost + currentNode->distance;
+                    node->price = calculateCostDistance(occupancyMapNode);
+                    node->cost = calculateCost(occupancyMapNode);
+                    node->poseTarget = currentNode->path[i]->childrens_[j]->pose_ - currentNode->path[i]->childrens_[j]->motion;
+                    // ROS_INFO_STREAM("distance:" << node->distance << " cost: " <<  node->cost );
+                    priorityPaths.push(node);
+                    // ROS_INFO_STREAM("i: " << i << " j: " << j);
+                    
+                }
+               
             }
             
 
@@ -110,7 +187,9 @@ namespace pathPlannings
     }
 
 
-    void simplePlannings::pathNodesGenerator(Eigen::Vector2d& target)
+
+
+    void simplePlannings::pathNodesGenerator(Eigen::Vector2i& target)
     {
         target_ = target;
         ROS_INFO_STREAM("pathNodesGenerator");
@@ -122,14 +201,15 @@ namespace pathPlannings
             {
                 if(occupancyMap_(i,j)>=1)
                 {
-                    Eigen::Vector2d materialPose_(i,j);
+                    Eigen::Vector2i materialPose_(i,j);
                     // ROS_INFO_STREAM("materialPose_: " << materialPose_(0) << " " << materialPose_(1));
                     //Without reference to obstacles
-                    double cost = 0.0;
+                    int cost = 0;
                     pathNode* node =  new pathNode(NULL, target, materialPose_, occupancyMap_, cost);
-                    Eigen::MatrixXd occupancyMap = occupancyMap_;
-                    parents_.push_back(pathNodeGenerator(node, target_, materialPose_ ,occupancyMap));
-                    // ROS_INFO_STREAM("parents_: " << parents_.back()->childrens_.size());
+                    Eigen::MatrixXi occupancyMap = occupancyMap_;
+                    node = pathNodeGenerator(node, target_, materialPose_ ,occupancyMap);
+                    parents_.push_back(node);
+                    ROS_INFO_STREAM("parents_: " << parents_.back()->childrens_.size());
 
                 }
 
@@ -138,11 +218,11 @@ namespace pathPlannings
     
     }
 
-    bool simplePlannings::limitTest(Eigen::Vector2d& checkPosition)
+    bool simplePlannings::limitTest(Eigen::Vector2i& checkPosition, Eigen::MatrixXi& occupancyMap)
     {
-        if(checkPosition(0,0)>=0 && checkPosition(1,0)>=0 && checkPosition(0,0)<occupancyMap_.rows() && checkPosition(1,0)<occupancyMap_.cols())
+        if(checkPosition(0)>=0 && checkPosition(1)>=0 && checkPosition(0)<occupancyMap.rows() && checkPosition(1)<occupancyMap.cols())
         {
-            if(occupancyMap_(checkPosition(0,0),checkPosition(1,0))==0)
+            if(occupancyMap(checkPosition(0),checkPosition(1))==0)
             {
                 return true;
             }
@@ -150,40 +230,50 @@ namespace pathPlannings
         return false;
     }
 
-    pathNode* simplePlannings::pathNodeGenerator(pathNode* parent, Eigen::Vector2d& target, Eigen::Vector2d& materialPose , Eigen::MatrixXd& occupancyMap)
+    pathNode* simplePlannings::pathNodeGenerator(pathNode* parent, Eigen::Vector2i& target, Eigen::Vector2i& materialPose , Eigen::MatrixXi& occupancyMap)
     {
-        // ROS_INFO_STREAM("pathNodeGenerator");
+        ROS_INFO_STREAM("pathNodeGenerator");
         for (auto k=0;k<motion_.size();k++)
             {
-                // ROS_INFO_STREAM("motion: " << motion_[k](0) << " " << motion_[k](1));
-                Eigen::Vector2d checkPosition = materialPose - motion_[k];
-                    if(limitTest(checkPosition) && motion_[k].dot(target-materialPose) > 0)
+                ROS_INFO_STREAM(occupancyMap);
+                ROS_INFO_STREAM("motion_: " << motion_[k]);
+                Eigen::Vector2i checkPosition = materialPose - motion_[k];
+                // ROS_INFO_STREAM("checkPosition: " << checkPosition);
+                    if(limitTest(checkPosition, occupancyMap) && motion_[k].dot(target-materialPose) > 0)
                     {
-                        double motionCost = stepPlanning(occupancyMap, motion_[k], materialPose, target);
-                        Eigen::Vector2d materialPoseNew = materialPose + motion_[k]*motionCost;
-                        occupancyMap(materialPoseNew(0),materialPoseNew(1)) = 1;
-                        occupancyMap(materialPose(0),materialPose(1)) = 0;
+                        int motionCost = stepPlanning(occupancyMap, motion_[k], materialPose, target);
+                        Eigen::Vector2i materialPoseNew = materialPose + motion_[k] * motionCost;
+                        Eigen::MatrixXi newOccupancyMap = occupancyMap;
+                        int value = 0;
+                        for(auto z = materialPose; z!=materialPoseNew; z += motion_[k])
+                        {
+                                value += newOccupancyMap(z(0),z(1));
+                                newOccupancyMap(z(0),z(1)) = 0;
+                                ROS_INFO_STREAM("value:" << value);
+                        }
+                        newOccupancyMap(materialPoseNew(0),materialPoseNew(1)) = value + newOccupancyMap(materialPoseNew(0),materialPoseNew(1));
                         if((target-materialPoseNew).norm() == 0)
                         {
-                            // ROS_INFO_STREAM("materialPose_in: " << materialPoseNew(0) << " " << materialPoseNew(1));
-                            pathNode* node =  new pathNode(parent, target, materialPoseNew, occupancyMap, motionCost);
-                            return node;
+                            pathNode* node =  new pathNode(parent, target, materialPoseNew, newOccupancyMap, motionCost);
+                            node->motion = motion_[k];
+                            parent->childrens_.push_back(node);
+                            return parent;
                         }
-                        // ROS_INFO_STREAM("materialPose_out: " << materialPoseNew(0) << " " << materialPoseNew(1));
-                        pathNode* node = new pathNode(parent, target, materialPoseNew, occupancyMap, motionCost);
-                        node->childrens_.push_back(pathNodeGenerator(node, target, materialPoseNew, occupancyMap));
+                        pathNode* node = new pathNode(parent, target, materialPoseNew, newOccupancyMap, motionCost);
+                        node->motion = motion_[k];
+                        node = pathNodeGenerator(node, target, materialPoseNew, newOccupancyMap);
                         parent->childrens_.push_back(node);
                     }
             }
         return parent;
     }
 
-    double simplePlannings::stepPlanning(Eigen::MatrixXd& occupancyMap, Eigen::Vector2d& motion, Eigen::Vector2d& materialPose, Eigen::Vector2d& target)
+    int simplePlannings::stepPlanning(Eigen::MatrixXi& occupancyMap, Eigen::Vector2i& motion, Eigen::Vector2i& materialPose, Eigen::Vector2i& target)
     {
-        double cost = 0;
+        int cost = 0;
         if(norm(motion(0)) > 0)
         {
-            Eigen::VectorXd occupancyVector = occupancyMap.rowwise().sum();
+            Eigen::VectorXi occupancyVector = occupancyMap.rowwise().sum();
             for(auto i = materialPose(0)+motion(0); i <= target(0); i += motion(0))
             {
                 cost++;
@@ -196,7 +286,8 @@ namespace pathPlannings
         }
         else
         {
-            Eigen::VectorXd occupancyVector = occupancyMap.colwise().sum();
+            Eigen::VectorXi occupancyVector = occupancyMap.colwise().sum();
+            // ROS_INFO_STREAM("occupancyVector: " << occupancyVector);
             for(auto i = materialPose(1)+motion(1); i <= target(1); i+= motion(1))
             {
                 cost++;
@@ -207,7 +298,6 @@ namespace pathPlannings
                 
             }
         }
-        // ROS_INFO_STREAM("cost: " << cost);
         return cost;
         
 
@@ -223,24 +313,35 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "simplePlannings");
     ros::NodeHandle nh;
-    Eigen::MatrixXd occupancyMap(5,5);
-    occupancyMap = Eigen::MatrixXd::Zero(5,5);
+    int value = 10;
+    Eigen::MatrixXi occupancyMap(value,value);
+    occupancyMap = Eigen::MatrixXi::Zero(value,value);
     occupancyMap(1,2) = 1;
-    occupancyMap(3,3) = 1;
+    occupancyMap(2,2) = 1;
+    occupancyMap(1,1) = 1;
+    occupancyMap(2,1) = 1;
+    // occupancyMap(6,3) = 1;
+    occupancyMap(5,3) = 1;
+    // occupancyMap(7,3) = 1;
+    // occupancyMap(8,3) = 1;
 
-    Eigen::MatrixXd goalMap(5,5);
-    goalMap = Eigen::MatrixXd::Zero(5,5);
-    goalMap(4,3) = 1;
-    Eigen::Vector2d target(4,3);
+    Eigen::MatrixXi goalMap(value,value);
+    goalMap = Eigen::MatrixXi::Zero(value,value);
+    goalMap(4,4) = 8;
+    Eigen::Vector2i target(4,4);
 
-    Eigen::Vector2d initialPosition(0,0);
-    Eigen::Vector2d constructionDirection(0,1);
+    Eigen::Vector2i initialPosition(0,0);
+    Eigen::Vector2i constructionDirection(0,1);
 
-    vector<Eigen::Vector2d> motion = {Eigen::Vector2d(1,0), Eigen::Vector2d(0,1), Eigen::Vector2d(-1,0), Eigen::Vector2d(0,-1)};
 
     pathPlannings::simplePlannings simplePlannerClass(nh, occupancyMap, goalMap, initialPosition, constructionDirection);
     // ROS_INFO_STREAM("occupancyMap_: " << occupancyMap);
     simplePlannerClass.pathNodesGenerator(target);
+    simplePlannerClass.solvePlanning();
+    for (int i = simplePlannerClass.agentPath.size()-1; i >= 0; i--)
+    {
+        ROS_INFO_STREAM("agentPath_: " << simplePlannerClass.agentPath[i]);
+    }
     ros::spin();
 
     return 0;
