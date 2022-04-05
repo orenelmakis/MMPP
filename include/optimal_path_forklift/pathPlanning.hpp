@@ -91,7 +91,7 @@ namespace pathPlannings
             planningNode* newPlanningNode(Eigen::Vector2i& pose, planningNode* parent, double& cost, Eigen::MatrixXi& occupancyMap);
 
 
-        vector<Eigen::Vector2i> agentPath;
+        vector<vector<Eigen::Vector2i>> agentPath;
         private:
             ros::NodeHandle nh_;
             Eigen::MatrixXi occupancyMap_;
