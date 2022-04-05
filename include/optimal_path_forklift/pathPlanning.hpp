@@ -74,11 +74,10 @@ namespace pathPlannings
     class simplePlannings
     {
         public:
-            simplePlannings(ros::NodeHandle& nh ,Eigen::MatrixXi& occupancyMap, Eigen::MatrixXi& goalMap, Eigen::Vector2i& initialPosition, 
-            Eigen::Vector2i& constructionDirection);
+            simplePlannings(ros::NodeHandle& nh);
             ~simplePlannings();
             bool limitTest(Eigen::Vector2i& newPosition, Eigen::MatrixXi& occupancyMap);
-            void setVariables(Eigen::MatrixXi&, Eigen::MatrixXi&);
+            void setVariables(Eigen::MatrixXi& goalMap, Eigen::MatrixXi& occupancyMap, Eigen::Vector2i& initialPosition, Eigen::Vector2i& goalPosition);
             void planning();
             void pathNodesGenerator(Eigen::Vector2i& target);
             pathNode* pathNodeGenerator(pathNode* parent, Eigen::Vector2i& target, Eigen::Vector2i& materialPose , Eigen::MatrixXi& occupancyMap);
@@ -88,10 +87,14 @@ namespace pathPlannings
             int calculateCostDistance(Eigen::MatrixXi& occupancyMap);
             void solvePlanning();
             int stepPlanning(Eigen::MatrixXi& occupancyMap, Eigen::Vector2i& motion, Eigen::Vector2i& materialPose, Eigen::Vector2i& target);
+            void pathConnector();
+            vector<Eigen::Vector2i> localPath(Eigen::Vector2i start, Eigen::Vector2i target, Eigen::MatrixXi& occupancyMap);
+
             planningNode* newPlanningNode(Eigen::Vector2i& pose, planningNode* parent, double& cost, Eigen::MatrixXi& occupancyMap);
 
-
+        vector<Eigen::Vector2i> fullPath;
         vector<vector<Eigen::Vector2i>> agentPath;
+        vector<Eigen::MatrixXi> agentOccupanyMap;
         private:
             ros::NodeHandle nh_;
             Eigen::MatrixXi occupancyMap_;
