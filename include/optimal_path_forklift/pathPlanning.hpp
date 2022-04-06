@@ -87,12 +87,9 @@ namespace pathPlannings
             int calculateCostDistance(Eigen::MatrixXi& occupancyMap);
             void solvePlanning();
             int stepPlanning(Eigen::MatrixXi& occupancyMap, Eigen::Vector2i& motion, Eigen::Vector2i& materialPose, Eigen::Vector2i& target);
-            void pathConnector();
-            vector<Eigen::Vector2i> localPath(Eigen::Vector2i start, Eigen::Vector2i target, Eigen::MatrixXi& occupancyMap);
 
             planningNode* newPlanningNode(Eigen::Vector2i& pose, planningNode* parent, double& cost, Eigen::MatrixXi& occupancyMap);
 
-        vector<Eigen::Vector2i> fullPath;
         vector<vector<Eigen::Vector2i>> agentPath;
         vector<Eigen::MatrixXi> agentOccupanyMap;
         private:

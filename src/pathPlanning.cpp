@@ -194,34 +194,6 @@ namespace pathPlannings
 
     }
 
-    void simplePlannings::pathConnector()
-    {
-        for(auto i = agentPath.size()-1; i > 1;i++)
-        {
-            vector<Eigen::Vector2i> localPath = localPath(agentPath[i-1][1], agentPath[i-1][0], agentOccupanyMap[i]);
-        }
-    }
-
-    vector<Eigen::Vector2i> simplePlannings::localPath(Eigen::Vector2i start, Eigen::Vector2i target, Eigen::MatrixXi& occupancyMap)
-    {
-        vector<Eigen::Vector2i> localpath;
-        Eigen::Vector2i pose(start);
-        while(pose != target)
-        {
-            for(auto k = 0; k< motion_.size(); k++)
-            {
-                Eigen::Vector2i tempPose = pose + motion_[k];
-                if(occupancyMap(tempPose(0),tempPose(1)) == 0 && motion_[k].dot(target-pose) > 0)
-                {
-                    pose = tempPose;
-                    localpath.push_back(pose);
-                    break;
-                }
-            }
-        }
-    }
-
-
     void simplePlannings::pathNodesGenerator(Eigen::Vector2i& target)
     {
         target_ = target;
@@ -358,48 +330,3 @@ namespace pathPlannings
 
 
 
-// int main(int argc, char** argv)
-// {
-//     ros::init(argc, argv, "simplePlannings");
-//     ros::NodeHandle nh;
-//     int value = 10;
-//     Eigen::MatrixXi occupancyMap(value,value);
-//     occupancyMap = Eigen::MatrixXi::Zero(value,value);
-//     occupancyMap(1,2) = 1;
-//     occupancyMap(2,2) = 1;
-//     occupancyMap(1,1) = 1;
-//     occupancyMap(2,1) = 1;
-//     occupancyMap(6,2) = 1;
-//     occupancyMap(5,2) = 1;
-//     occupancyMap(7,3) = 1;
-//     occupancyMap(8,7) = 1;
-//     occupancyMap(8,6) = 1;
-//     occupancyMap(6,3) = 1;
-
-//     Eigen::MatrixXi goalMap(value,value);
-//     goalMap = Eigen::MatrixXi::Zero(value,value);
-//     goalMap(7,7) = 8;
-//     Eigen::Vector2i target(7,7);
-
-//     Eigen::Vector2i initialPosition(0,0);
-//     Eigen::Vector2i constructionDirection(0,1);
-
-
-//     pathPlannings::simplePlannings simplePlannerClass(nh, occupancyMap, goalMap, initialPosition, constructionDirection);
-//     // ROS_INFO_STREAM("occupancyMap_: " << occupancyMap);
-//     simplePlannerClass.pathNodesGenerator(target);
-//     simplePlannerClass.solvePlanning();
-//     for (int i = simplePlannerClass.agentPath.size()-1; i >= 0; i--)
-//     {
-//         ROS_INFO_STREAM("agentPath_: ");
-//         for (int j = 0; j < simplePlannerClass.agentPath[i].size(); j++)
-//         {
-//             ROS_INFO_STREAM( simplePlannerClass.agentPath[i][j]);
-//         }
-        
-//     }
-
-//     ros::spin();
-
-//     return 0;
-// }
