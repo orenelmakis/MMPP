@@ -26,7 +26,7 @@ namespace pathPlannings
         markerPub = nh_.advertise<visualization_msgs::MarkerArray>(pathTopic, 1);
     }
 
-    void simplePlanningsNode::setVariables(Eigen::MatrixXi& goalMap, Eigen::MatrixXi& occupancyMap, Eigen::Vector2i& initialPosition, Eigen::Vector2i& goalPosition)
+    void simplePlanningsNode::setVariables(Eigen::MatrixXi& goalMap, Eigen::MatrixXi& occupancyMap, Eigen::Vector2i& initialPosition, Eigen::Vector3i& goalPosition)
     {
         simplePlanning_.setVariables(goalMap, occupancyMap, initialPosition, goalPosition);
     }
@@ -153,8 +153,8 @@ int main(int argc, char** argv)
     occupancyMap(2,2) = 1;
     occupancyMap(1,1) = 1;
     occupancyMap(2,1) = 1;
-    occupancyMap(3,2) = 1;
-    occupancyMap(4,2) = 1;
+    // occupancyMap(3,2) = 1;
+    // occupancyMap(4,2) = 1;
     // occupancyMap(5,2) = 1;
     // occupancyMap(5,3) = 1;
     // occupancyMap(5,4) = 1;
@@ -168,36 +168,36 @@ int main(int argc, char** argv)
     Eigen::MatrixXi goalMap(value,value);
     goalMap = Eigen::MatrixXi::Zero(value,value);
     goalMap(1,1) = 8;
-    Eigen::Vector2i target(9,9);
+    Eigen::Vector3i target(4,4,4);
 
     Eigen::Vector2i initialPosition(0,0);
 
     simplePlanningsNode.setVariables(occupancyMap, goalMap, initialPosition, target);
-    // ROS_INFO_STREAM("occupancyMap_: " << occupancyMap);
+    ROS_INFO_STREAM("occupancyMap_: " << occupancyMap);
     simplePlanningsNode.simplePlanning_.pathNodesGenerator(target);
     simplePlanningsNode.simplePlanning_.solvePlanning();
 
-    for (int i = simplePlanningsNode.simplePlanning_.agentPath.size()-1; i >= 0; i--)
-    {
-        ROS_INFO_STREAM("agentPath_: ");
-        for (int j = 0; j < simplePlanningsNode.simplePlanning_.agentPath[i].size(); j++)
-        {
-            ROS_INFO_STREAM( simplePlanningsNode.simplePlanning_.agentPath[i][j]);
-        }
+    // for (int i = simplePlanningsNode.simplePlanning_.agentPath.size()-1; i >= 0; i--)
+    // {
+    //     ROS_INFO_STREAM("agentPath_: ");
+    //     for (int j = 0; j < simplePlanningsNode.simplePlanning_.agentPath[i].size(); j++)
+    //     {
+    //         ROS_INFO_STREAM( simplePlanningsNode.simplePlanning_.agentPath[i][j]);
+    //     }
         
-    }
-    simplePlanningsNode.agentPath = simplePlanningsNode.simpleOptimizer_.pathConnector(simplePlanningsNode.simplePlanning_.agentPath, simplePlanningsNode.simplePlanning_.agentOccupanyMap);
-    simplePlanningsNode.visualizeMarkerbuild(simplePlanningsNode.agentPath,occupancyMap);
+    // }
+    // simplePlanningsNode.agentPath = simplePlanningsNode.simpleOptimizer_.pathConnector(simplePlanningsNode.simplePlanning_.agentPath, simplePlanningsNode.simplePlanning_.agentOccupanyMap);
+    // simplePlanningsNode.visualizeMarkerbuild(simplePlanningsNode.agentPath,occupancyMap);
 
 
-    int time = 0;
-    ros::Rate rate(5);
-    while(ros::ok())
-    {
-        simplePlanningsNode.visualizeMarkerPublish(time);
-        time++;
-        rate.sleep();
-    }
+    // int time = 0;
+    // ros::Rate rate(5);
+    // while(ros::ok())
+    // {
+    //     simplePlanningsNode.visualizeMarkerPublish(time);
+    //     time++;
+    //     rate.sleep();
+    // }
     return 0;
 }
 

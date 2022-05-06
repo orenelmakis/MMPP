@@ -21,7 +21,7 @@ namespace pathPlannings
     class pathNode
     {
         public:
-            pathNode(pathNode* parent, Eigen::Vector2i& target, Eigen::Vector2i& pose, Eigen::MatrixXi& occupancyMap, int& cost);
+            pathNode(pathNode* parent, Eigen::Vector3i& target, Eigen::Vector2i& pose, Eigen::MatrixXi& occupancyMap, int& cost);
             
             void setVariables(Eigen::MatrixXi&);
             int cost;
@@ -31,7 +31,7 @@ namespace pathPlannings
         private:
             pathNode* parent_;
             
-            Eigen::Vector2i target_;
+            Eigen::Vector3i target_;
             
             Eigen::MatrixXi occupancyMap_;
             
@@ -77,16 +77,16 @@ namespace pathPlannings
             simplePlannings(ros::NodeHandle& nh);
             ~simplePlannings();
             bool limitTest(Eigen::Vector2i& newPosition, Eigen::MatrixXi& occupancyMap);
-            void setVariables(Eigen::MatrixXi& goalMap, Eigen::MatrixXi& occupancyMap, Eigen::Vector2i& initialPosition, Eigen::Vector2i& goalPosition);
+            void setVariables(Eigen::MatrixXi& goalMap, Eigen::MatrixXi& occupancyMap, Eigen::Vector2i& initialPosition, Eigen::Vector3i& goalPosition);
             void planning();
-            void pathNodesGenerator(Eigen::Vector2i& target);
-            pathNode* pathNodeGenerator(pathNode* parent, Eigen::Vector2i& target, Eigen::Vector2i& materialPose , Eigen::MatrixXi& occupancyMap);
+            void pathNodesGenerator(Eigen::Vector3i& target);
+            pathNode* pathNodeGenerator(pathNode* parent, Eigen::Vector3i& target, Eigen::Vector2i& materialPose , Eigen::MatrixXi& occupancyMap);
             
             int calculateDistance(Eigen::Vector2i& pose, Eigen::Vector2i& target);
             int calculateCost(Eigen::MatrixXi& occupancyMap);
             int calculateCostDistance(Eigen::MatrixXi& occupancyMap);
             void solvePlanning();
-            int stepPlanning(Eigen::MatrixXi& occupancyMap, Eigen::Vector2i& motion, Eigen::Vector2i& materialPose, Eigen::Vector2i& target);
+            int stepPlanning(Eigen::MatrixXi& occupancyMap, Eigen::Vector2i& motion, Eigen::Vector2i& materialPose, Eigen::Vector3i& target);
 
             planningNode* newPlanningNode(Eigen::Vector2i& pose, planningNode* parent, double& cost, Eigen::MatrixXi& occupancyMap);
 
@@ -96,7 +96,7 @@ namespace pathPlannings
             ros::NodeHandle nh_;
             Eigen::MatrixXi occupancyMap_;
             Eigen::MatrixXi goalMap_;
-            Eigen::Vector2i  target_;
+            Eigen::Vector3i  target_;
             Eigen::Vector2i initialPosition_;
             vector<Eigen::Vector2i> path_;
             Eigen::Vector2i constructionDirection_;

@@ -17,7 +17,7 @@ namespace pathPlannings
 
         simplePlanningsNode(ros::NodeHandle& nh);
         void setParam();
-        void setVariables(Eigen::MatrixXi& goalMap, Eigen::MatrixXi& occupancyMap, Eigen::Vector2i& initialPosition, Eigen::Vector2i& goalPosition);
+        void setVariables(Eigen::MatrixXi& goalMap, Eigen::MatrixXi& occupancyMap, Eigen::Vector2i& initialPosition, Eigen::Vector3i& goalPosition);
         void setPublisher();
         void visualizeMarkerbuild(vector<Eigen::Vector2i>& path, Eigen::MatrixXi& occupancyMap);
         void visualizeMarkerPublish(int& time);
