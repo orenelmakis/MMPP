@@ -23,6 +23,9 @@ namespace pathPlannings
 
     vector<Eigen::Vector2i> pathOptimizer::solveAStar(Eigen::MatrixXi& occupancyMap, Eigen::Vector2i& start, Eigen::Vector2i& goal)
     {
+        ROS_INFO_STREAM("solveAStar");
+        ROS_INFO_STREAM("start " << start);
+        ROS_INFO_STREAM("goal " << goal);
         vector<Eigen::Vector2i> path_;
 
         Node* current = nullptr;
@@ -33,22 +36,31 @@ namespace pathPlannings
         root->cost = calculateDistance(start,goal) + root->step;
 
         openSet.push_back(root);
+        int count = 0;
         while(openSet.size())
         {
+            count++;
+            if (count > 100)
+            {
+                ROS_INFO_STREAM("count > 100");
+                break;
+            }
             current = minimalNode(openSet);
             closedSet.push_back(current);
             if(current->pose == goal)
             {
+                ROS_INFO_STREAM("goal found");
                 break;
             }
             for(auto i : motion_)
             {
-                Eigen::Vector2i newPose;
-                newPose << current->pose(0) + i(0), current->pose(1) + i(1);
+                Eigen::Vector2i newPose = current->pose + i;
                 if(!saftyFunc(newPose, occupancyMap))
                 {
+                    ROS_INFO_STREAM("newPose " << newPose);
                     continue;
                 }
+                // ROS_INFO_STREAM(PushPose);
                 Node* child = checkFunc(newPose, closedSet);
                 if(child == nullptr)
                 {
@@ -66,12 +78,13 @@ namespace pathPlannings
 
 
         }
-        while(current !=nullptr)
+        while(current != nullptr)
         {
-            // ROS_INFO_STREAM("current pose: " << current->pose(0) << " " << current->pose(1));
+            ROS_INFO_STREAM("current pose: " << current->pose(0) << " " << current->pose(1));
             path_.push_back(current->pose);
             current = current->parent;
         }
+        reverse(path_.begin(), path_.end());
 
         return path_;
 
@@ -128,71 +141,37 @@ namespace pathPlannings
     {
          if((pose(0)>=0 && pose(1) >= 0) && (pose(0) < occupancyMap.rows() && pose(1) < occupancyMap.cols()))
          {
-             if(occupancyMap(pose(0), pose(1)) == 0)
-             {
-                    return true;
-             }
-
+             return true;
          }
          return false;
     } 
 
     vector<Eigen::Vector2i> pathOptimizer::pathConnector(vector<vector<Eigen::Vector2i>>& path, vector<Eigen::MatrixXi>& occupancyMapVector)
     {
+        // ROS_INFO_STREAM("pathConnector");
+        reverse(path.begin(), path.end());
         vector<Eigen::Vector2i> path_;
-        vector<Eigen::Vector2i> pathTemp = solveAStar(occupancyMapVector[path.size()-1], path[path.size()-1][0], path[path.size()-2][0]);
-        for(auto it = pathTemp.end()-1; it != pathTemp.begin()-1; it--)
+        // vector<Eigen::Vector2i> pathTemp = solveAStar(occupancyMapVector[0], path[0][0], path[1][0]);
+        // for(auto it = pathTemp.begin(); it != pathTemp.end(); it++)
+        // {
+        //     path_.push_back(*it);
+        // }
+        for(auto i = 1; i != path.size(); i++ )
         {
-            // ROS_INFO_STREAM("path: " << (*it));
-            path_.push_back(*it);
-        }
-        for(auto i = path.size()-2; i > 0; i--  )
-        {
-            Eigen::Vector2i motion = (path[i][1]-path[i][0])/(path[i][1]-path[i][0]).norm();
-            pathTemp.clear();
-            Eigen::Vector2i pose = path[i][0]+ motion;
-            // ROS_INFO_STREAM("pose:" << pose);
-            while(pose != path[i][1] && motion.norm() > 0)
-            {
-                pathTemp.push_back(pose);
-                pose = pose + motion;
-                
-                
-            }
+            ROS_INFO_STREAM("path" << " " << path[i][0] << " " << path[i][1]);
+            vector<Eigen::Vector2i> pathTemp = solveAStar(occupancyMapVector[i], path[i][0], path[i][1]);
             for(auto it = pathTemp.begin(); it != pathTemp.end(); it++)
-            {
-                // ROS_INFO_STREAM("2: " << (*it));
-                path_.push_back(*it);
-            }
-            pathTemp.clear();
-            vector<Eigen::Vector2i> pathTemp = solveAStar(occupancyMapVector[i-1], path[i][1], path[i-1][0]);
-            // ROS_INFO_STREAM("***: " << path[i-1][0]);
-            // ROS_INFO_STREAM("pathTemp size: " << pathTemp.size());
-            for(auto it = pathTemp.end()-1; it != pathTemp.begin()-1; it--)
             {
                 // ROS_INFO_STREAM("###: " << (*it));
                 path_.push_back(*it);
             }
 
         }
-        Eigen::Vector2i motion = (path[0][1]-path[0][0])/(path[0][1]-path[0][0]).norm();
-        pathTemp.clear();
-        Eigen::Vector2i pose = path[0][0]+ motion;
-        // ROS_INFO_STREAM("pose:" << pose);
-        while(pose != path[0][1] and motion.norm() > 0)
-        {
-            
-            pathTemp.push_back(pose);
-            pose = pose + motion;
-            
-            
-        }
-        pathTemp.push_back(path[0][1]);
-        for(auto it = pathTemp.begin(); it != pathTemp.end(); it++)
-        {
-                // ROS_INFO_STREAM("2: " << (*it));
-            path_.push_back(*it);
-        }
+        // for(auto it = pathTemp.begin(); it != pathTemp.end(); it++)
+        // {
+        //         // ROS_INFO_STREAM("2: " << (*it));
+        //     path_.push_back(*it);
+        // }
         for(auto it = path_.begin(); it != path_.end(); it++)
         {
             ROS_INFO_STREAM("path: " << (*it));

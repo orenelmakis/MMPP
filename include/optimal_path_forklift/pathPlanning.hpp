@@ -14,6 +14,14 @@ using namespace std;
 
 namespace pathPlannings 
 {
+    class materialNode
+    {
+        public:
+        materialNode(Eigen::Vector2i& location);
+
+        Eigen::Vector2i location;
+
+    };
 
 
 
@@ -21,30 +29,24 @@ namespace pathPlannings
     class pathNode
     {
         public:
-            pathNode(pathNode* parent, Eigen::Vector3i& target, Eigen::Vector2i& pose, Eigen::MatrixXi& occupancyMap, int& cost);
+            pathNode(pathNode* parent, Eigen::Vector2i& pose);
             
-            void setVariables(Eigen::MatrixXi&);
-            int cost;
             Eigen::Vector2i pose_;
             vector<pathNode*> childrens_;
-            Eigen::Vector2i motion;
         private:
             pathNode* parent_;
-            
-            Eigen::Vector3i target_;
-            
-            Eigen::MatrixXi occupancyMap_;
+                        
             
 
     };
 
-    struct comp
-    {
-        bool operator()(const pathNode* a, const pathNode* b) const
-        {
-            return a->cost > b->cost;
-        }
-    };
+    // struct comp
+    // {
+    //     bool operator()(const pathNode* a, const pathNode* b) const
+    //     {
+    //         return a->cost > b->cost;
+    //     }
+    // };
 
 
     class planningNode
@@ -79,8 +81,8 @@ namespace pathPlannings
             bool limitTest(Eigen::Vector2i& newPosition, Eigen::MatrixXi& occupancyMap);
             void setVariables(Eigen::MatrixXi& goalMap, Eigen::MatrixXi& occupancyMap, Eigen::Vector2i& initialPosition, Eigen::Vector3i& goalPosition);
             void planning();
-            void pathNodesGenerator(Eigen::Vector3i& target);
-            pathNode* pathNodeGenerator(pathNode* parent, Eigen::Vector3i& target, Eigen::Vector2i& materialPose , Eigen::MatrixXi& occupancyMap);
+            void pathNodesGenerator(int& edges,Eigen::Vector3i& target);
+            pathNode* pathNodeGenerator(pathNode* parent, Eigen::Vector3i& target, Eigen::Vector2i& materialPose , vector<materialNode*> materials,int& edges);
             
             int calculateDistance(Eigen::Vector2i& pose, Eigen::Vector2i& target);
             int calculateCost(Eigen::MatrixXi& occupancyMap);
@@ -101,7 +103,9 @@ namespace pathPlannings
             vector<Eigen::Vector2i> path_;
             Eigen::Vector2i constructionDirection_;
             vector<Eigen::Vector2i> motion_;
-            vector<pathNode*> parents_;
+            pathNode* parentNode_;
+
+            vector<materialNode*> materials_;
             
 
 

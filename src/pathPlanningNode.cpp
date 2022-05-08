@@ -174,19 +174,20 @@ int main(int argc, char** argv)
 
     simplePlanningsNode.setVariables(occupancyMap, goalMap, initialPosition, target);
     ROS_INFO_STREAM("occupancyMap_: " << occupancyMap);
-    simplePlanningsNode.simplePlanning_.pathNodesGenerator(target);
+    int edges = 2;
+    simplePlanningsNode.simplePlanning_.pathNodesGenerator(edges,target);
     simplePlanningsNode.simplePlanning_.solvePlanning();
 
-    // for (int i = simplePlanningsNode.simplePlanning_.agentPath.size()-1; i >= 0; i--)
-    // {
-    //     ROS_INFO_STREAM("agentPath_: ");
-    //     for (int j = 0; j < simplePlanningsNode.simplePlanning_.agentPath[i].size(); j++)
-    //     {
-    //         ROS_INFO_STREAM( simplePlanningsNode.simplePlanning_.agentPath[i][j]);
-    //     }
+    for (int i = simplePlanningsNode.simplePlanning_.agentPath.size()-1; i >= 0; i--)
+    {
+        ROS_INFO_STREAM("agentPath_: ");
+        for (int j = 0; j < simplePlanningsNode.simplePlanning_.agentPath[i].size(); j++)
+        {
+            ROS_INFO_STREAM( simplePlanningsNode.simplePlanning_.agentPath[i][j]);
+        }
         
-    // }
-    // simplePlanningsNode.agentPath = simplePlanningsNode.simpleOptimizer_.pathConnector(simplePlanningsNode.simplePlanning_.agentPath, simplePlanningsNode.simplePlanning_.agentOccupanyMap);
+    }
+    simplePlanningsNode.agentPath = simplePlanningsNode.simpleOptimizer_.pathConnector(simplePlanningsNode.simplePlanning_.agentPath, simplePlanningsNode.simplePlanning_.agentOccupanyMap);
     // simplePlanningsNode.visualizeMarkerbuild(simplePlanningsNode.agentPath,occupancyMap);
 
 
